@@ -1,69 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
 import Image from 'next/image';
+import type { Product } from "@/types/product";
 
-interface Product {
-  stacklineSku: string;
-  title: string;
-  categoryName: string;
-  subCategoryName: string;
-  imageUrls: string[];
-  featureBullets: string[];
-  retailerSku: string;
+interface ProductViewProps extends React.HTMLAttributes<HTMLSpanElement> {
+  product: Product;
 }
 
-export default function ProductPage() {
-  const searchParams = useSearchParams();
-  const productParam = searchParams.get('product');
-  const [product, setProduct] = useState<Product | null>(null);
+function ProductView({ className, product, ...props }: ProductViewProps) {
   const [selectedImage, setSelectedImage] = useState(0);
-
-  useEffect(() => {
-    if (productParam) {
-      try {
-        const parsedProduct = JSON.parse(productParam);
-        setProduct(parsedProduct);
-      } catch (error) {
-        console.error('Failed to parse product data:', error);
-      }
-    }
-  }, [productParam]);
-
-  if (!product) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <Link href="/">
-            <Button variant="ghost" className="mb-4">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Products
-            </Button>
-          </Link>
-          <Card className="p-8">
-            <p className="text-center text-muted-foreground">Product not found</p>
-          </Card>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
-        <Link href="/">
-          <Button variant="ghost" className="mb-4">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Products
-          </Button>
-        </Link>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-4">
             <Card className="overflow-hidden">
@@ -89,9 +41,8 @@ export default function ProductPage() {
                   <button
                     key={idx}
                     onClick={() => setSelectedImage(idx)}
-                    className={`relative h-20 border-2 rounded-lg overflow-hidden ${
-                      selectedImage === idx ? 'border-primary' : 'border-muted'
-                    }`}
+                    className={`relative h-20 border-2 rounded-lg overflow-hidden ${selectedImage === idx ? 'border-primary' : 'border-muted'
+                      }`}
                   >
                     <Image
                       src={url}
@@ -114,6 +65,7 @@ export default function ProductPage() {
               </div>
               <h1 className="text-3xl font-bold mb-2">{product.title}</h1>
               <p className="text-sm text-muted-foreground">SKU: {product.retailerSku}</p>
+              <p className="text-sm text-muted-foreground">${product.retailPrice.toFixed(2)}</p>
             </div>
 
             {product.featureBullets.length > 0 && (
@@ -137,3 +89,5 @@ export default function ProductPage() {
     </div>
   );
 }
+
+export { ProductView, type Product };

@@ -36,32 +36,33 @@ export default function Home() {
   const [categories, setCategories] = useState<string[]>([]);
   const [subCategories, setSubCategories] = useState<string[]>([]);
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(
-    undefined
-  );
-  const [selectedSubCategory, setSelectedSubCategory] = useState<
-    string | undefined
-  >(undefined);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
+  const handleAddToCart = () => {
+    console.log("Add to cart");
+  };
+
   useEffect(() => {
-    fetch("/api/categories")
-      .then((res) => res.json())
-      .then((data) => setCategories(data.categories));
+    fetchApiData("categories")
+      .then(data => {
+        setCategories(data.categories);
+      });
+    fetchApiData("subcategories")
+      .then(data => {
+        setSubCategories(data.subCategories);
+      });
+    startSearch(search, selectedCategory, selectedSubCategory);
   }, []);
 
-  useEffect(() => {
-    if (selectedCategory) {
-      fetch(`/api/subcategories`)
-        .then((res) => res.json())
-        .then((data) => setSubCategories(data.subCategories));
-    } else {
-      setSubCategories([]);
-      setSelectedSubCategory(undefined);
-    }
-  }, [selectedCategory]);
+  async function fetchApiData(path: string, params: URLSearchParams = new URLSearchParams()) {
+    const res = await fetch(`/api/${path}?${params}`);
+    const data = await res.json();
+    return data;
+  }
 
-  useEffect(() => {
+  function startSearch(search: string, selectedCategory: string, selectedSubCategory: string) {
     setLoading(true);
     const params = new URLSearchParams();
     if (search) params.append("search", search);
@@ -69,13 +70,13 @@ export default function Home() {
     if (selectedSubCategory) params.append("subCategory", selectedSubCategory);
     params.append("limit", "20");
 
-    fetch(`/api/products?${params}`)
-      .then((res) => res.json())
-      .then((data) => {
+    fetchApiData("products", params)
+      .then(data => {
+        console.log(data.products[0]);
         setProducts(data.products);
-        setLoading(false);
       });
-  }, [search, selectedCategory, selectedSubCategory]);
+    setLoading(false);
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -90,13 +91,24 @@ export default function Home() {
                 placeholder="Search products..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    startSearch(search, selectedCategory, selectedSubCategory);
+                  }
+                }}
+                onBlur={() => {
+                  startSearch(search, selectedCategory, selectedSubCategory);
+                }}
                 className="pl-10"
               />
             </div>
-
             <Select
+              disabled={products.length === 0}
               value={selectedCategory}
-              onValueChange={(value) => setSelectedCategory(value || undefined)}
+              onValueChange={(value) => {
+                setSelectedCategory(value || '');
+                startSearch(search, value, selectedSubCategory);
+              }}
             >
               <SelectTrigger className="w-full md:w-[200px]">
                 <SelectValue placeholder="All Categories" />
@@ -112,10 +124,12 @@ export default function Home() {
 
             {selectedCategory && subCategories.length > 0 && (
               <Select
+                disabled={products.length === 0}
                 value={selectedSubCategory}
-                onValueChange={(value) =>
-                  setSelectedSubCategory(value || undefined)
-                }
+                onValueChange={(value) => {
+                  setSelectedSubCategory(value || '');
+                  startSearch(search, selectedCategory, value);
+                }}
               >
                 <SelectTrigger className="w-full md:w-[200px]">
                   <SelectValue placeholder="All Subcategories" />
@@ -135,8 +149,9 @@ export default function Home() {
                 variant="outline"
                 onClick={() => {
                   setSearch("");
-                  setSelectedCategory(undefined);
-                  setSelectedSubCategory(undefined);
+                  setSelectedCategory("");
+                  setSelectedSubCategory("");
+                  startSearch("", "", "");
                 }}
               >
                 Clear Filters
@@ -197,9 +212,17 @@ export default function Home() {
                       </CardDescription>
                     </CardContent>
                     <CardFooter>
-                      <Button variant="outline" className="w-full">
-                        View Details
-                      </Button>
+                      <div>
+                        <Button variant="outline">
+                          View Details
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          onClick={(event) => handleAddToCart()}
+                        >
+                          Add to Cart
+                        </Button>
+                      </div>
                     </CardFooter>
                   </Card>
                 </Link>
