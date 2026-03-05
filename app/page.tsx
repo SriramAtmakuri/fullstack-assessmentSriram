@@ -29,6 +29,9 @@ interface Product {
   categoryName: string;
   subCategoryName: string;
   imageUrls: string[];
+  featureBullets: string[];
+  retailerSku: string;
+  retailPrice: number;
 }
 
 export default function Home() {
@@ -36,6 +39,7 @@ export default function Home() {
   const [categories, setCategories] = useState<string[]>([]);
   const [subCategories, setSubCategories] = useState<string[]>([]);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(
     undefined
   );
@@ -50,9 +54,20 @@ export default function Home() {
       .then((data) => setCategories(data.categories));
   }, []);
 
+  // Bug 7 fix: debounce search input to avoid firing a request on every keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   useEffect(() => {
     if (selectedCategory) {
-      fetch(`/api/subcategories`)
+      // Bug 2 fix: reset subcategory selection when category changes
+      setSelectedSubCategory(undefined);
+      // Bug 1 fix: pass the category param so subcategories are filtered correctly
+      fetch(`/api/subcategories?category=${encodeURIComponent(selectedCategory)}`)
         .then((res) => res.json())
         .then((data) => setSubCategories(data.subCategories));
     } else {
@@ -64,7 +79,7 @@ export default function Home() {
   useEffect(() => {
     setLoading(true);
     const params = new URLSearchParams();
-    if (search) params.append("search", search);
+    if (debouncedSearch) params.append("search", debouncedSearch);
     if (selectedCategory) params.append("category", selectedCategory);
     if (selectedSubCategory) params.append("subCategory", selectedSubCategory);
     params.append("limit", "20");
@@ -75,7 +90,7 @@ export default function Home() {
         setProducts(data.products);
         setLoading(false);
       });
-  }, [search, selectedCategory, selectedSubCategory]);
+  }, [debouncedSearch, selectedCategory, selectedSubCategory]);
 
   return (
     <div className="min-h-screen bg-background">

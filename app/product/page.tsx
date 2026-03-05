@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -17,9 +17,11 @@ interface Product {
   imageUrls: string[];
   featureBullets: string[];
   retailerSku: string;
+  retailPrice: number;
 }
 
-export default function ProductPage() {
+// Bug 3 fix: extract into a sub-component so useSearchParams can be wrapped in Suspense
+function ProductPageContent() {
   const searchParams = useSearchParams();
   const productParam = searchParams.get('product');
   const [product, setProduct] = useState<Product | null>(null);
@@ -114,9 +116,14 @@ export default function ProductPage() {
               </div>
               <h1 className="text-3xl font-bold mb-2">{product.title}</h1>
               <p className="text-sm text-muted-foreground">SKU: {product.retailerSku}</p>
+              {/* Bug 8 fix: display retailPrice */}
+              {product.retailPrice && (
+                <p className="text-2xl font-semibold mt-2">${product.retailPrice.toFixed(2)}</p>
+              )}
             </div>
 
-            {product.featureBullets.length > 0 && (
+            {/* Bug 6 fix: guard featureBullets with optional chaining */}
+            {product.featureBullets?.length > 0 && (
               <Card>
                 <CardContent className="pt-6">
                   <h2 className="text-lg font-semibold mb-3">Features</h2>
@@ -135,5 +142,17 @@ export default function ProductPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ProductPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    }>
+      <ProductPageContent />
+    </Suspense>
   );
 }
